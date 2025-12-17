@@ -11,3 +11,5 @@ spring:
       ddl-auto: update
     show-sql: true
     open-in-view: false
+jwt:
+  secret: 9f3a8c1d2e4b6a7c8d9e0f1a2b3c4d5e

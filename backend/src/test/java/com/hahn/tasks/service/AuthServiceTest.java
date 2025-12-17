@@ -1,4 +1,4 @@
-package com.hahn.tasks.auth;
+package com.hahn.tasks.service;
 
 import com.hahn.tasks.model.User;
 import com.hahn.tasks.repository.UserRepository;
