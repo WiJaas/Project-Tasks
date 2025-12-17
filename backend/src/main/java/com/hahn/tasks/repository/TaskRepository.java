@@ -1,6 +1,8 @@
 package com.hahn.tasks.repository;
 
+import com.hahn.tasks.model.Project;
 import com.hahn.tasks.model.Task;
+import com.hahn.tasks.model.TaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -8,11 +10,11 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    List<Task> findByProjectId(Long projectId);
+    List<Task> findAllByProject(Project project);
+    Optional<Task> findByIdAndProject(Long id, Project project);
 
-    Optional<Task> findByIdAndProjectId(Long id, Long projectId);
+    long countAllByProject(Project project);
 
-    long countByProjectId(Long projectId);
+    long countByProjectAndStatus(Project project, TaskStatus status);
 
-    long countByProjectIdAndCompletedTrue(Long projectId);
 }
