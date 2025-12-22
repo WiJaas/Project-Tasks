@@ -1,73 +1,146 @@
 package com.hahn.tasks.service;
 
 import com.hahn.tasks.dto.CreateProjectRequest;
-
 import com.hahn.tasks.dto.ProjectResponse;
+import com.hahn.tasks.dto.TaskResponse;
+import com.hahn.tasks.dto.UserDto;
 import com.hahn.tasks.model.Project;
+import com.hahn.tasks.model.TaskStatus;
 import com.hahn.tasks.model.User;
 import com.hahn.tasks.repository.ProjectRepository;
+import com.hahn.tasks.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-
-import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
+    /* ===============================
+       AUTHENTICATED USER RESOLUTION
+    ================================ */
 
-    public ProjectResponse createProject(CreateProjectRequest request, User user) {
+    private UserDto getCurrentUserDto() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDto)) {
+            throw new IllegalStateException("Unauthenticated user");
+        }
+
+        return (UserDto) authentication.getPrincipal();
+    }
+
+    private User getCurrentUser() {
+        UserDto userDto = getCurrentUserDto();
+
+        return userRepository.findById(userDto.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    /* ===============================
+       BUSINESS LOGIC
+    ================================ */
+
+    public ProjectResponse createProject(CreateProjectRequest request) {
+        User user = getCurrentUser();
+
         Project project = new Project();
         project.setTitle(request.getTitle());
         project.setDescription(request.getDescription());
         project.setUser(user);
 
+        return mapToResponse(projectRepository.save(project));
+    }
+    @Transactional(readOnly = true)
+    public ProjectResponse getProject(Long id) {
+        User user = getCurrentUser();
 
-        Project saved = projectRepository.save(project);
+        Project project = projectRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found"));
 
-        ProjectResponse response = new ProjectResponse();
-        response.setId(saved.getId()); // 🔴 THIS WAS MISSING
-        response.setTitle(saved.getTitle());
-        response.setDescription(saved.getDescription());
-        response.setTotalTasks(0);
-        response.setCompletedTasks(0);
-        response.setProgressPercentage(0);
-    return response;    }
+        return mapToResponse(project);
+    }
 
 
+    @Transactional(readOnly = true)
+    public List<ProjectResponse> getProjects() {
+        User user = getCurrentUser();
 
-    public List<ProjectResponse> getProjects(User user){
         return projectRepository.findAllByUser(user)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
-    public ProjectResponse getProject(Long id, User user){
-        Project project = projectRepository.findByIdAndUser(id,user)
-                .orElseThrow(()-> new RuntimeException("Project not found"));
+    @Transactional
+    public ProjectResponse updateProject(Long id, CreateProjectRequest request) {
+        User user = getCurrentUser();
+
+        Project project = projectRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Project not found or access denied"));
+
+        project.setTitle(request.getTitle());
+        project.setDescription(request.getDescription());
+
         return mapToResponse(project);
     }
 
-    private ProjectResponse mapToResponse(Project project) {
-        int totalTasks = project.getTasks() == null ? 0 : project.getTasks().size();
-        int completedTasks = 0;
+    @Transactional
+    public void deleteProject(Long id) {
+        User user = getCurrentUser();
 
-        int progress = totalTasks == 0 ? 0 :(completedTasks * 100 )/ totalTasks;
+        Project project = projectRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Project not found or access denied"));
+
+        projectRepository.delete(project);
+    }
+
+
+    private ProjectResponse mapToResponse(Project project) {
+
+        int totalTasks = project.getTasks() == null ? 0 : project.getTasks().size();
+        int completedTasks = project.getTasks() == null
+                ? 0
+                : (int) project.getTasks().stream()
+                .filter(t -> t.getStatus() == TaskStatus.COMPLETED)
+                .count();
+
+        int progress = totalTasks == 0 ? 0 : (completedTasks * 100) / totalTasks;
 
         ProjectResponse response = new ProjectResponse();
-
         response.setId(project.getId());
         response.setTitle(project.getTitle());
         response.setDescription(project.getDescription());
         response.setTotalTasks(totalTasks);
         response.setCompletedTasks(completedTasks);
         response.setProgressPercentage(progress);
+
+        // Map tasks to DTOs
+        response.setTasks(
+                project.getTasks() == null ? List.of() :
+                        project.getTasks().stream()
+                                .map(task -> {
+                                    TaskResponse t = new TaskResponse();
+                                    t.setId(task.getId());
+                                    t.setTitle(task.getTitle());
+                                    t.setDescription(task.getDescription());
+                                    t.setDueDate(task.getDueDate());
+                                    t.setStatus(task.getStatus());
+                                    return t;
+                                })
+                                .toList()
+        );
+
         return response;
 
-    }
 
+    }
 }

@@ -1,50 +1,55 @@
 package com.hahn.tasks.service;
 
-import com.hahn.tasks.model.User;
-import com.hahn.tasks.repository.UserRepository;
-import com.hahn.tasks.security.JwtUtil;
+import com.hahn.tasks.dto.LoginRequest;
+import com.hahn.tasks.dto.LoginResponse;
+import com.hahn.tasks.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 
-import java.util.Optional;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AuthServiceTest {
+class AuthenticationServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private AuthenticationManager authenticationManager;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtUtil jwtUtil;
+    private JwtTokenProvider tokenProvider;
 
     @InjectMocks
-    private AuthService authService;
+    private AuthenticationService authenticationService;
 
     @Test
     void shouldLoginSuccessfully() {
-        User user = User.builder()
-                .email("admin@test.com")
-                .password("encoded")
-                .build();
 
-        when(userRepository.findByEmail("admin@test.com"))
-                .thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("password", "encoded"))
-                .thenReturn(true);
-        when(jwtUtil.generateToken("admin@test.com"))
+        // GIVEN
+        LoginRequest request =
+                new LoginRequest("admin@test.com", "password");
+
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(
+                        "admin@test.com", null);
+
+        when(authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        "admin@test.com", "password")))
+                .thenReturn(authentication);
+
+        when(tokenProvider.generateToken(authentication))
                 .thenReturn("jwt-token");
 
-        String token = authService.login("admin@test.com", "password");
+        // WHEN
+        LoginResponse response = authenticationService.login(request);
 
-        assertThat(token).isEqualTo("jwt-token");
+        // THEN
+        assertThat(response.getToken()).isEqualTo("jwt-token");
     }
 }

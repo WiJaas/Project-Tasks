@@ -2,14 +2,20 @@ server:
   port: 8080
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+
   datasource:
-    url: jdbc:mysql://localhost:3307/tasks_db
+    url: jdbc:mysql://localhost:3308/tasks_db
     username: root
     password: root
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     open-in-view: false
+
 jwt:
-  secret: 9f3a8c1d2e4b6a7c8d9e0f1a2b3c4d5e
+  secret: 03e1dd4a6ae43cbc4d12c1e669adb30fdd532dcf3e14041afa42f9fe160b3bf5
+  expiration: 86400000

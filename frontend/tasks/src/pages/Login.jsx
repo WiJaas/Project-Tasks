@@ -1,130 +1,104 @@
+// src/pages/Login.jsx
 import { useState } from "react";
-import { useAuth } from "../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
 
 export default function Login() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError(null);
 
     try {
       await login(email, password);
+      navigate("/projects");
     } catch {
       setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      className="min-vh-100 d-flex align-items-center justify-content-center"
-      style={{
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      }}
-    >
-      <div
-        className="card border-0 shadow-lg"
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          borderRadius: "16px",
-          backdropFilter: "blur(10px)",
-        }}
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <form
+        onSubmit={handleLogin}
+        className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6"
       >
-        <div className="card-body p-4 p-md-5">
-          {/* Header */}
-          <div className="text-center mb-4">
-            <div
-              className="mb-3 mx-auto d-flex align-items-center justify-content-center"
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "14px",
-                background: "linear-gradient(135deg, #667eea, #764ba2)",
-                color: "white",
-                fontSize: "24px",
-                fontWeight: "bold",
-              }}
-            >
-              H
-            </div>
-            <h3 className="fw-bold mb-1">Welcome back</h3>
-            <p className="text-muted mb-0">
-              Sign in to your Hahn Tasks account
-            </p>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="alert alert-danger text-center py-2 small">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            {/* Email */}
-            <div className="mb-3">
-              <label className="form-label small fw-semibold">Email</label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0">
-                  <i className="bi bi-envelope"></i>
-                </span>
-                <input
-                  type="email"
-                  className="form-control border-start-0"
-                  placeholder="admin@test.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="mb-4">
-              <label className="form-label small fw-semibold">Password</label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0">
-                  <i className="bi bi-lock"></i>
-                </span>
-                <input
-                  type="password"
-                  className="form-control border-start-0"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Button */}
-            <button
-              type="submit"
-              className="btn btn-primary w-100 py-2 fw-semibold"
-              disabled={isLoading}
-              style={{
-                borderRadius: "10px",
-                background: "linear-gradient(135deg, #667eea, #764ba2)",
-                border: "none",
-              }}
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="text-center mt-4 text-muted small">
-            © {new Date().getFullYear()} Hahn Tasks
-          </div>
+        {/* Logo */}
+        <div className="flex justify-center">
+          <img
+            src="/logo.png"
+            alt="TaskManager"
+            className="h-14 w-auto"
+          />
         </div>
-      </div>
+
+        {/* Title */}
+        <div className="text-center space-y-1">
+          <h2 className="text-2xl font-semibold text-slate-800">
+            Welcome Back
+          </h2>
+          <p className="text-sm text-slate-500">
+            Enter your credentials to access your account
+          </p>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-lg bg-red-50 text-red-600 text-sm px-4 py-2">
+            {error}
+          </div>
+        )}
+
+        {/* Email */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700">
+            Email address
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700">
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="••••••••"
+          />
+        </div>
+
+        {/* Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-lg bg-blue-600 text-white py-2.5 font-medium hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+      </form>
     </div>
   );
 }
